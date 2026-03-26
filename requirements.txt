@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+firecrawl-py
+jinja2
+aiofiles
