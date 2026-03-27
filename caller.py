@@ -22,36 +22,71 @@ def create_inbound_agent(server_url: str) -> str:
             "agent": {
                 "prompt": {
                     "prompt": (
-                        "You are a vendor research coordinator. When the user calls:\n"
-                        "1. Greet them warmly.\n"
-                        "2. Ask which vendors they want to contact (get a list of names).\n"
-                        "3. Ask what product/item they need pricing for.\n"
-                        "4. Ask the quantity they need (e.g., 50 units).\n"
-                        "5. Once you have all three pieces of info, call the start_research tool.\n"
-                        "6. Tell the user: 'Got it! I'm contacting your vendors now. I'll call you back "
-                        "once all results are in. Have a great day!'\n"
-                        "7. End the call."
+                        "You are a vendor research coordinator for a procurement system.\n\n"
+                        "When the user calls, follow this exact flow:\n\n"
+                        "STEP 1 — Greet warmly and ask which vendors they want to contact.\n\n"
+                        "STEP 2 — For EACH vendor name mentioned, immediately call the lookup_vendor tool "
+                        "with that vendor name. Based on the result:\n"
+                        "  - If found (found=true): Say 'I found [vendor name] in your directory — "
+                        "their contact is [contact/notes], phone is [phone], they supply [supplies]. "
+                        "Is this the same one you mean?'\n"
+                        "    - If YES: note this vendor as confirmed from database.\n"
+                        "    - If NO: note this vendor needs a fresh web search.\n"
+                        "  - If not found (found=false): Say 'I don't have [vendor name] in your "
+                        "directory yet — I'll search for them online.' Note as needs web search.\n\n"
+                        "STEP 3 — Ask what product/item they need pricing for.\n\n"
+                        "STEP 4 — Ask the quantity they need.\n\n"
+                        "STEP 5 — Once you have all info, call start_research with the full vendor list, "
+                        "product, quantity, and for each vendor include whether it was confirmed from DB.\n\n"
+                        "STEP 6 — Say: 'Got it! I'm contacting your vendors now. "
+                        "I'll send you updates on Telegram and call you back when all results are in!'\n\n"
+                        "STEP 7 — End the call."
                     ),
                     "tools": [
                         {
                             "type": "webhook",
+                            "name": "lookup_vendor",
+                            "description": "Look up a vendor by name in the existing supplier database. Call this for every vendor the user mentions before confirming.",
+                            "api_schema": {
+                                "url": f"{server_url}/api/vendors/lookup",
+                                "method": "GET",
+                                "query_params_schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {"type": "string", "description": "The vendor name to search for"},
+                                    },
+                                    "required": ["name"],
+                                },
+                            },
+                        },
+                        {
+                            "type": "webhook",
                             "name": "start_research",
-                            "description": "Trigger vendor research and outbound calls",
+                            "description": "Trigger vendor research and outbound calls once all vendors are confirmed",
                             "api_schema": {
                                 "url": f"{server_url}/orchestrate",
                                 "method": "POST",
                                 "request_body_schema": {
                                     "type": "object",
                                     "properties": {
-                                        "vendors": {"type": "array", "items": {"type": "string", "description": "A single vendor name"}, "description": "List of vendor names to contact"},
-                                        "product": {"type": "string", "description": "The product or item the client needs pricing for"},
-                                        "quantity": {"type": "string", "description": "The quantity of units needed"},
-                                        "user_phone": {"type": "string", "description": "The caller phone number for callback"},
+                                        "vendors": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                            "description": "List of vendor names to contact",
+                                        },
+                                        "product": {"type": "string", "description": "Product or item needed"},
+                                        "quantity": {"type": "string", "description": "Quantity of units needed"},
+                                        "user_phone": {"type": "string", "description": "Caller phone number for callback"},
+                                        "confirmed_vendors": {
+                                            "type": "array",
+                                            "description": "Vendors confirmed to be in the database — skip web search for these",
+                                            "items": {"type": "string"},
+                                        },
                                     },
                                     "required": ["vendors", "product", "quantity"],
                                 },
                             },
-                        }
+                        },
                     ],
                 },
                 "first_message": "Hey! I'm your vendor research assistant. Who would you like me to contact today?",

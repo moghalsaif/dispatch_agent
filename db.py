@@ -206,8 +206,43 @@ def search_known_vendors(product: str, quantity: int) -> list:
 
 def list_vendors() -> list:
     with get_conn() as conn:
-        rows = conn.execute("SELECT * FROM vendors ORDER BY name").fetchall()
+        rows = conn.execute("SELECT * FROM vendors WHERE active=1 ORDER BY name").fetchall()
         return [dict(r) for r in rows]
+
+
+def fuzzy_search_vendors(name: str) -> list:
+    """Return vendors whose name contains any word from the query (case-insensitive)."""
+    words = [w for w in name.lower().split() if len(w) > 2]
+    if not words:
+        return []
+    with get_conn() as conn:
+        results = []
+        seen = set()
+        for word in words:
+            rows = conn.execute(
+                "SELECT * FROM vendors WHERE active=1 AND LOWER(name) LIKE ?", (f"%{word}%",)
+            ).fetchall()
+            for r in rows:
+                d = dict(r)
+                if d["id"] not in seen:
+                    seen.add(d["id"])
+                    results.append(d)
+        return results
+
+
+def update_vendor(vendor_id: str, **kwargs):
+    kwargs["updated_at"] = time.time() if "updated_at" not in kwargs else kwargs["updated_at"]
+    # vendors table doesn't have updated_at — skip it safely
+    kwargs.pop("updated_at", None)
+    sets = ", ".join(f"{k}=?" for k in kwargs)
+    vals = list(kwargs.values()) + [vendor_id]
+    with get_conn() as conn:
+        conn.execute(f"UPDATE vendors SET {sets} WHERE id=?", vals)
+
+
+def delete_vendor(vendor_id: str):
+    with get_conn() as conn:
+        conn.execute("UPDATE vendors SET active=0 WHERE id=?", (vendor_id,))
 
 
 # ── Telegram users ───────────────────────────────────────────────────────────

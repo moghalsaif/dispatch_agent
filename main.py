@@ -30,6 +30,7 @@ class OrchestrationRequest(BaseModel):
     product: str
     quantity: str
     user_phone: Optional[str] = None
+    confirmed_vendors: Optional[List[str]] = None  # vendor names confirmed from DB — skip web search
 
 
 # ── Orchestration (called by inbound ElevenLabs agent tool) ─────────────────
@@ -49,18 +50,21 @@ async def orchestrate(req: OrchestrationRequest, background_tasks: BackgroundTas
         tg.notify_research_started(chat_id, req.vendors, req.product, req.quantity)
 
     background_tasks.add_task(
-        _run_research_and_call, session_id, req.vendors, req.product, req.quantity, user_phone, chat_id
+        _run_research_and_call, session_id, req.vendors, req.product, req.quantity,
+        user_phone, chat_id, req.confirmed_vendors or []
     )
     return {"status": "started", "session_id": session_id}
 
 
 async def _run_research_and_call(session_id: str, vendors: list[str], product: str,
-                                  quantity: str, user_phone: str, chat_id: str | None):
+                                  quantity: str, user_phone: str, chat_id: Optional[str],
+                                  confirmed_vendors: list = None):
     loop = asyncio.get_event_loop()
     try:
-        # 1. Resolve vendors (DB first, then Firecrawl)
+        # 1. Resolve vendors — skip Firecrawl for confirmed DB vendors
+        confirmed_set = {v.lower() for v in (confirmed_vendors or [])}
         vendor_data = await loop.run_in_executor(
-            None, research.resolve_all_vendors, vendors, product, quantity
+            None, research.resolve_all_vendors, vendors, product, quantity, confirmed_set
         )
 
         outbound_agent_id = os.environ["OUTBOUND_AGENT_ID"]
@@ -326,6 +330,63 @@ def list_vendors():
     return db.list_vendors()
 
 
+@app.post("/api/vendors")
+async def add_vendor(request: Request):
+    data = await request.json()
+    vid = db.add_vendor(
+        name=data["name"],
+        phone=data.get("phone", ""),
+        website=data.get("website", ""),
+        supplies=data.get("supplies", ""),
+        min_order=int(data.get("min_order", 0)),
+        max_order=int(data.get("max_order", 999999)),
+        notes=data.get("notes", ""),
+    )
+    return {"id": vid, "status": "created"}
+
+
+@app.put("/api/vendors/{vendor_id}")
+async def edit_vendor(vendor_id: str, request: Request):
+    data = await request.json()
+    allowed = {"name", "phone", "website", "supplies", "min_order", "max_order", "notes"}
+    updates = {k: v for k, v in data.items() if k in allowed}
+    if "min_order" in updates:
+        updates["min_order"] = int(updates["min_order"])
+    if "max_order" in updates:
+        updates["max_order"] = int(updates["max_order"])
+    db.update_vendor(vendor_id, **updates)
+    return {"status": "updated"}
+
+
+@app.delete("/api/vendors/{vendor_id}")
+def remove_vendor(vendor_id: str):
+    db.delete_vendor(vendor_id)
+    return {"status": "deleted"}
+
+
+@app.get("/api/vendors/lookup")
+def lookup_vendor(name: str):
+    """Called by inbound agent mid-call to check if vendor is in DB."""
+    matches = db.fuzzy_search_vendors(name)
+    if not matches:
+        return {"found": False, "matches": []}
+    return {
+        "found": True,
+        "matches": [
+            {
+                "id": v["id"],
+                "name": v["name"],
+                "phone": v["phone"] or "not on file",
+                "contact": v["notes"] or "",
+                "supplies": v["supplies"] or "",
+                "min_order": v["min_order"],
+                "max_order": v["max_order"],
+            }
+            for v in matches[:3]  # return top 3 matches max
+        ],
+    }
+
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
     return templates.TemplateResponse("dashboard.html", {"request": request})
@@ -365,6 +426,11 @@ async def save_settings(request: Request):
     for k, v in filtered.items():
         os.environ[k] = v
     return {"status": "saved", "count": len(filtered)}
+
+
+@app.get("/vendors", response_class=HTMLResponse)
+def vendors_page(request: Request):
+    return templates.TemplateResponse("vendors.html", {"request": request})
 
 
 @app.get("/faq", response_class=HTMLResponse)

@@ -34,11 +34,30 @@ def resolve_vendor(vendor_name: str, product: str, quantity: str) -> dict:
     return search_vendor_online(vendor_name)
 
 
-def resolve_all_vendors(vendor_names: list[str], product: str, quantity: str) -> list[dict]:
+def resolve_all_vendors(vendor_names: list[str], product: str, quantity: str,
+                        confirmed_set: set = None) -> list[dict]:
+    confirmed_set = confirmed_set or set()
     results = []
     for name in vendor_names:
         try:
-            info = resolve_vendor(name, product, quantity)
+            if name.lower() in confirmed_set:
+                import db as _db
+                known = _db.get_known_vendor(name)
+                if known:
+                    info = {
+                        "vendor_name": known["name"],
+                        "phone": known["phone"],
+                        "website": known["website"],
+                        "listed_price": None,
+                        "source": "db_confirmed",
+                        "can_handle_quantity": (
+                            known["min_order"] <= int(quantity or 0) <= known["max_order"]
+                        ) if quantity and str(quantity).isdigit() else True,
+                    }
+                else:
+                    info = search_vendor_online(name)
+            else:
+                info = resolve_vendor(name, product, quantity)
         except Exception as e:
             info = {"vendor_name": name, "phone": None, "website": None,
                     "listed_price": None, "source": "db", "error": str(e)}

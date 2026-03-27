@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch — Supplier Directory</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f13; color: #e2e8f0; }
+  header { padding: 20px 32px; border-bottom: 1px solid #1e1e2e; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  .nav-link { color: #64748b; text-decoration: none; font-size: 13px; padding: 6px 14px; border-radius: 6px; transition: all .15s; }
+  .nav-link:hover, .nav-link.active { background: #1e1e2e; color: #e2e8f0; }
+  main { padding: 28px 32px; max-width: 1100px; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .top-bar h2 { font-size: 16px; font-weight: 600; }
+  .search-wrap { display: flex; gap: 10px; align-items: center; }
+  input[type="text"], input[type="tel"], input[type="number"], textarea, select {
+    background: #0f0f13; border: 1px solid #1e1e2e; border-radius: 8px;
+    padding: 9px 13px; color: #e2e8f0; font-size: 13px; outline: none; transition: border-color .15s;
+  }
+  input:focus, textarea:focus { border-color: #6366f1; }
+  input[type="text"].search { width: 240px; }
+  .btn { background: #6366f1; color: white; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; }
+  .btn:hover { background: #4f46e5; }
+  .btn-ghost { background: transparent; border: 1px solid #1e1e2e; color: #94a3b8; }
+  .btn-ghost:hover { border-color: #6366f1; color: #e2e8f0; background: transparent; }
+  .btn-danger { background: #450a0a; color: #f87171; }
+  .btn-danger:hover { background: #7f1d1d; }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 14px; background: #0f0f13; color: #475569; font-weight: 500; border-bottom: 1px solid #1e1e2e; white-space: nowrap; }
+  td { padding: 13px 14px; border-bottom: 1px solid #1e1e2e; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #13131b; }
+  .empty { color: #475569; font-size: 13px; padding: 60px 0; text-align: center; }
+  .supply-tag { background: #1e293b; color: #60a5fa; border-radius: 4px; padding: 2px 8px; font-size: 11px; display: inline-block; margin: 2px 2px 2px 0; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #16161f; border: 1px solid #1e1e2e; border-radius: 14px; padding: 28px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+  .field { margin-bottom: 15px; }
+  .field label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; font-weight: 500; text-transform: uppercase; letter-spacing: .4px; }
+  .field input, .field textarea { width: 100%; }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .hint { font-size: 11px; color: #475569; margin-top: 4px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #14532d; color: #4ade80; border-radius: 8px; padding: 12px 18px; font-size: 13px; display: none; z-index: 200; }
+  .toast.error { background: #450a0a; color: #f87171; }
+  .source-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #1e3a5f; color: #60a5fa; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Dispatch</h1>
+  <nav style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/vendors" class="nav-link active">Suppliers</a>
+    <a href="/settings" class="nav-link">Settings</a>
+    <a href="/faq" class="nav-link">FAQ</a>
+  </nav>
+</header>
+
+<main>
+  <div class="top-bar">
+    <h2>Supplier Directory <span id="count" style="color:#475569;font-weight:400"></span></h2>
+    <div class="search-wrap">
+      <input type="text" class="search" id="search-input" placeholder="Search suppliers..." oninput="filterTable()">
+      <button class="btn" onclick="openAddModal()">+ Add Supplier</button>
+    </div>
+  </div>
+
+  <div style="overflow-x:auto;">
+    <table id="vendor-table">
+      <thead>
+        <tr>
+          <th>Supplier Name</th>
+          <th>Phone</th>
+          <th>Website</th>
+          <th>Supplies</th>
+          <th>Order Range</th>
+          <th>Notes / Contact</th>
+          <th style="width:100px"></th>
+        </tr>
+      </thead>
+      <tbody id="vendor-tbody">
+        <tr><td colspan="7" class="empty">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modal-title">Add Supplier</h3>
+    <input type="hidden" id="edit-id">
+    <div class="field">
+      <label>Supplier / Company Name *</label>
+      <input type="text" id="f-name" placeholder="e.g. James & Johnson Supplies">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Phone Number</label>
+        <input type="tel" id="f-phone" placeholder="+91 98765 43210">
+        <p class="hint">Include country code for outbound calls</p>
+      </div>
+      <div class="field">
+        <label>Website</label>
+        <input type="text" id="f-website" placeholder="https://jjsupplies.com">
+      </div>
+    </div>
+    <div class="field">
+      <label>What Do They Supply?</label>
+      <input type="text" id="f-supplies" placeholder="e.g. copper wire, steel bolts, PCBs, GPUs">
+      <p class="hint">Comma-separated keywords — used to match vendor to your product requests</p>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Min Order Quantity</label>
+        <input type="number" id="f-min" placeholder="0" min="0">
+      </div>
+      <div class="field">
+        <label>Max Order Quantity</label>
+        <input type="number" id="f-max" placeholder="999999" min="0">
+      </div>
+    </div>
+    <div class="field">
+      <label>Contact Person / Notes</label>
+      <textarea id="f-notes" placeholder="e.g. Ask for Ravi at ext 205. Good for bulk orders. Net-30 payment terms."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" onclick="saveVendor()" id="save-btn">Add Supplier</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let vendors = [];
+
+  async function loadVendors() {
+    const res = await fetch('/api/vendors');
+    vendors = await res.json();
+    renderTable(vendors);
+    document.getElementById('count').textContent = `(${vendors.length})`;
+  }
+
+  function renderTable(data) {
+    const tbody = document.getElementById('vendor-tbody');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No suppliers yet. Click "+ Add Supplier" to get started.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(v => `
+      <tr>
+        <td><strong>${esc(v.name)}</strong></td>
+        <td>${v.phone ? `<a href="tel:${esc(v.phone)}" style="color:#60a5fa;text-decoration:none">${esc(v.phone)}</a>` : '<span style="color:#334155">—</span>'}</td>
+        <td>${v.website ? `<a href="${esc(v.website)}" target="_blank" style="color:#60a5fa;text-decoration:none;font-size:12px">${shortUrl(v.website)}</a>` : '<span style="color:#334155">—</span>'}</td>
+        <td>${(v.supplies || '').split(',').filter(Boolean).map(s => `<span class="supply-tag">${esc(s.trim())}</span>`).join('') || '<span style="color:#334155">—</span>'}</td>
+        <td style="white-space:nowrap;color:#94a3b8">${v.min_order ?? 0} – ${v.max_order ?? '∞'} units</td>
+        <td style="max-width:180px;font-size:12px;color:#64748b">${esc(v.notes || '')}</td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal(${JSON.stringify(v).replace(/"/g,'&quot;')})">Edit</button>
+          <button class="btn btn-danger btn-sm" style="margin-left:4px" onclick="deleteVendor('${v.id}','${esc(v.name)}')">Del</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function filterTable() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const filtered = vendors.filter(v =>
+      [v.name, v.phone, v.supplies, v.notes, v.website].some(f => (f||'').toLowerCase().includes(q))
+    );
+    renderTable(filtered);
+  }
+
+  function openAddModal() {
+    document.getElementById('modal-title').textContent = 'Add Supplier';
+    document.getElementById('save-btn').textContent = 'Add Supplier';
+    document.getElementById('edit-id').value = '';
+    ['name','phone','website','supplies','notes'].forEach(f => document.getElementById('f-'+f).value = '');
+    document.getElementById('f-min').value = '';
+    document.getElementById('f-max').value = '';
+    document.getElementById('modal-bg').classList.add('open');
+  }
+
+  function openEditModal(v) {
+    document.getElementById('modal-title').textContent = 'Edit Supplier';
+    document.getElementById('save-btn').textContent = 'Save Changes';
+    document.getElementById('edit-id').value = v.id;
+    document.getElementById('f-name').value = v.name || '';
+    document.getElementById('f-phone').value = v.phone || '';
+    document.getElementById('f-website').value = v.website || '';
+    document.getElementById('f-supplies').value = v.supplies || '';
+    document.getElementById('f-min').value = v.min_order ?? '';
+    document.getElementById('f-max').value = v.max_order ?? '';
+    document.getElementById('f-notes').value = v.notes || '';
+    document.getElementById('modal-bg').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (!e || e.target === document.getElementById('modal-bg'))
+      document.getElementById('modal-bg').classList.remove('open');
+  }
+
+  async function saveVendor() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { showToast('Supplier name is required.', true); return; }
+    const data = {
+      name,
+      phone: document.getElementById('f-phone').value.trim(),
+      website: document.getElementById('f-website').value.trim(),
+      supplies: document.getElementById('f-supplies').value.trim(),
+      min_order: parseInt(document.getElementById('f-min').value) || 0,
+      max_order: parseInt(document.getElementById('f-max').value) || 999999,
+      notes: document.getElementById('f-notes').value.trim(),
+    };
+    const editId = document.getElementById('edit-id').value;
+    const url = editId ? `/api/vendors/${editId}` : '/api/vendors';
+    const method = editId ? 'PUT' : 'POST';
+    try {
+      await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+      closeModal();
+      showToast(editId ? '✅ Supplier updated.' : '✅ Supplier added.');
+      loadVendors();
+    } catch(e) {
+      showToast('Error: ' + e.message, true);
+    }
+  }
+
+  async function deleteVendor(id, name) {
+    if (!confirm(`Remove "${name}" from your directory?`)) return;
+    await fetch(`/api/vendors/${id}`, { method: 'DELETE' });
+    showToast(`Removed ${name}.`);
+    loadVendors();
+  }
+
+  function showToast(msg, isError=false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3500);
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function shortUrl(u) { try { return new URL(u).hostname.replace('www.',''); } catch { return u; } }
+
+  loadVendors();
+</script>
+</body>
+</html>
