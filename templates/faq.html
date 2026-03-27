@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dispatch — FAQ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f13; color: #e2e8f0; }
+  header { padding: 20px 32px; border-bottom: 1px solid #1e1e2e; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  .nav-link { color: #64748b; text-decoration: none; font-size: 13px; padding: 6px 14px; border-radius: 6px; transition: all .15s; }
+  .nav-link:hover, .nav-link.active { background: #1e1e2e; color: #e2e8f0; }
+  main { padding: 32px; max-width: 760px; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #475569; margin: 32px 0 14px; }
+  .faq-item { border: 1px solid #1e1e2e; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .faq-q { padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 500; background: #16161f; user-select: none; transition: background .15s; }
+  .faq-q:hover { background: #1a1a26; }
+  .faq-q .arrow { color: #475569; transition: transform .2s; font-size: 12px; }
+  .faq-item.open .faq-q .arrow { transform: rotate(180deg); }
+  .faq-a { display: none; padding: 16px 20px; font-size: 14px; color: #94a3b8; line-height: 1.7; border-top: 1px solid #1e1e2e; background: #13131b; }
+  .faq-item.open .faq-a { display: block; }
+  .faq-a code { background: #1e1e2e; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #a78bfa; }
+  .faq-a strong { color: #e2e8f0; }
+  .faq-a ul { margin: 8px 0 8px 18px; }
+  .faq-a li { margin-bottom: 5px; }
+  .tag-fix { background: #14532d; color: #4ade80; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-left: 8px; }
+  .tag-tip { background: #1e3a5f; color: #60a5fa; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-left: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Dispatch</h1>
+  <nav style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/settings" class="nav-link">Settings</a>
+    <a href="/faq" class="nav-link active">FAQ</a>
+  </nav>
+</header>
+<main>
+  <h2>Frequently Asked Questions</h2>
+  <p class="subtitle">Real problems, real fixes — from actually building and running this system.</p>
+
+  <p class="section-title">📞 Phone & Calling</p>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">I called the agent but it said "application error" and cut the call <span class="tag-fix">Fixed</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Your Twilio phone number isn't assigned to an ElevenLabs agent yet. Go to <strong>elevenlabs.io → Conversational AI → Phone Numbers</strong> → click your number → assign the <strong>Vendor Research Coordinator</strong> agent. After that, calls will connect properly.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">It plays "You have a trial account" every time I call <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">This is Twilio's trial account restriction. You can't skip it without upgrading. Go to <strong>twilio.com/console → Billing → Upgrade Account</strong> and add a payment method. Your $15 free credit carries over — upgrading just removes the trial message.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">Outbound calls to India keep getting cut immediately <span class="tag-fix">Fixed</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Twilio <strong>trial accounts block international calls entirely</strong>, even if you have credit. You must upgrade your Twilio account to a paid account first. International calls (US → India) cost roughly $0.05–0.08/min. Your $15 credit is more than enough for testing.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">I can't get an Indian (+91) phone number on Twilio <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Twilio requires TRAI regulatory documents for Indian numbers — it's an Indian government rule, not Twilio's choice. Your options:
+      <ul>
+        <li><strong>Use a US Twilio number</strong> — works fine for calling Indian vendors, just shows a US caller ID</li>
+        <li><strong>Plivo</strong> — Indian company with +91 numbers, ElevenLabs supports it natively</li>
+        <li><strong>Exotel</strong> — popular Indian provider, connects via SIP trunking to ElevenLabs</li>
+      </ul>
+      For production with Indian clients, Exotel is the go-to choice.
+    </div>
+  </div>
+
+  <p class="section-title">🤖 Telegram Bot</p>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">My Telegram bot isn't responding to /start <span class="tag-fix">Fixed</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Two things to check:
+      <ul>
+        <li>Make sure the server is running: <code>python3 -m uvicorn main:app --host 0.0.0.0 --port 8000</code></li>
+        <li>Make sure your tunnel is active (cloudflared or ngrok) and <code>SERVER_URL</code> is set correctly in <code>.env</code></li>
+      </ul>
+      Telegram delivers messages to your <code>/telegram/webhook</code> endpoint. If the server isn't running or the URL is wrong, messages silently fail.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">Telegram webhook shows "501 Not Implemented" error <span class="tag-fix">Fixed</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Another process was running on port 8000 intercepting requests. Run <code>lsof -i :8000</code> to see all processes on that port, then kill any that aren't your uvicorn server. Then restart uvicorn with <code>--host 0.0.0.0</code> so it listens on all interfaces.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">How do I link my phone number to receive Telegram notifications? <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Open your Telegram bot and send: <code>/link +919010118787</code> (replace with your number, include country code). This must be the <strong>same number you call the agent from</strong>. The system uses this to match your inbound call to your Telegram account for live updates.</div>
+  </div>
+
+  <p class="section-title">🔑 API Keys & Setup</p>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">What ElevenLabs API key permissions do I need? <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Only 4 permissions needed — set everything else to No Access:
+      <ul>
+        <li><strong>ElevenAgents</strong> — Write</li>
+        <li><strong>Webhooks</strong> — Access</li>
+        <li><strong>Voices</strong> — Read</li>
+        <li><strong>User</strong> — Read</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">Server crashes on startup with "unsupported operand type(s) for |: 'type' and 'NoneType'" <span class="tag-fix">Fixed</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">This happens on Python 3.9 — the <code>str | None</code> union type syntax requires Python 3.10+. Either upgrade to Python 3.10+ or replace <code>str | None</code> with <code>Optional[str]</code> from the <code>typing</code> module in the Pydantic models.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">How do I expose my local server to the internet for webhooks? <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Use <strong>cloudflared</strong> (free, no signup needed):
+      <br><br><code>cloudflared tunnel --url http://localhost:8000 --no-autoupdate</code><br><br>
+      It gives you a URL like <code>https://xxx.trycloudflare.com</code> — paste that as your <code>SERVER_URL</code> in Settings. Note: this URL changes every time you restart the tunnel, so you'll need to re-run <code>setup_agents.py</code> after each restart in development.
+    </div>
+  </div>
+
+  <p class="section-title">🔍 Vendor Research</p>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">How does the system find vendor phone numbers? <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">It follows this priority order:
+      <ul>
+        <li><strong>1. Your vendor database</strong> — if you've added the vendor via <code>python manage_vendors.py add</code>, it uses that data instantly</li>
+        <li><strong>2. Firecrawl web search</strong> — searches the vendor's website, scrapes it for phone number, contact info, and any listed pricing</li>
+        <li><strong>3. Internet search for alternatives</strong> — if a vendor can't fulfill, you'll get a Telegram prompt asking if you want to search for other suppliers</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">How do I add my existing vendors to the database? <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">Run <code>python manage_vendors.py add</code> and fill in the prompts: vendor name, phone, website, what they supply, min/max order quantities, and any notes. To see all vendors: <code>python manage_vendors.py list</code>. To remove one: <code>python manage_vendors.py remove "Vendor Name"</code>.</div>
+  </div>
+
+  <p class="section-title">🛣️ Roadmap</p>
+
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggle(this)">What's coming next to Dispatch? <span class="tag-tip">Info</span> <span class="arrow">▼</span></div>
+    <div class="faq-a">This is currently a self-hosted, locally-run tool. Here's what's being built:
+      <ul>
+        <li><strong>Full SaaS platform</strong> — vendors and procurement teams will be able to sign up, plug in their own ElevenLabs + Firecrawl API keys, and get the whole system running without touching any code</li>
+        <li><strong>Vendor marketplace</strong> — a shared, verified vendor directory so you don't have to manually research every supplier</li>
+        <li><strong>Multi-user workspaces</strong> — teams can collaborate on vendor research sessions</li>
+        <li><strong>Auto-scheduling</strong> — schedule recurring vendor check-ins automatically</li>
+        <li><strong>Price history tracking</strong> — compare vendor quotes over time</li>
+        <li><strong>WhatsApp support</strong> — receive updates on WhatsApp in addition to Telegram</li>
+      </ul>
+      More updates coming in the next few weeks.
+    </div>
+  </div>
+
+</main>
+<script>
+  function toggle(el) {
+    el.closest('.faq-item').classList.toggle('open');
+  }
+</script>
+</body>
+</html>

@@ -35,12 +35,19 @@
   .pulse { animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
   .refresh-info { font-size: 12px; color: #475569; margin-top: 12px; }
+  .nav-link { color: #64748b; text-decoration: none; font-size: 13px; padding: 6px 14px; border-radius: 6px; transition: all .15s; }
+  .nav-link:hover, .nav-link.active { background: #1e1e2e; color: #e2e8f0; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Vendor Caller</h1>
-  <span class="badge" id="refresh-badge">Live</span>
+  <h1>⚡ Dispatch</h1>
+  <span class="badge" id="refresh-badge">● Live</span>
+  <nav style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/" class="nav-link active">Dashboard</a>
+    <a href="/settings" class="nav-link">Settings</a>
+    <a href="/faq" class="nav-link">FAQ</a>
+  </nav>
 </header>
 <main>
   <div id="sessions-list" class="sessions"></div>

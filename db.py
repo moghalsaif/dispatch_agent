@@ -57,6 +57,11 @@ def init_db():
                 username TEXT,
                 registered_at REAL
             );
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at REAL
+            );
         """)
 
 
@@ -223,3 +228,21 @@ def get_telegram_chat_id(phone: str) -> str | None:
             (phone, phone.lstrip("+1")),
         ).fetchone()
         return row["chat_id"] if row else None
+
+
+# ── Settings ─────────────────────────────────────────────────────────────────
+
+def get_settings() -> dict:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT key, value FROM settings").fetchall()
+        return {r["key"]: r["value"] for r in rows}
+
+
+def save_settings(data: dict):
+    now = time.time()
+    with get_conn() as conn:
+        for key, value in data.items():
+            conn.execute(
+                "INSERT OR REPLACE INTO settings VALUES (?,?,?)",
+                (key, value, now),
+            )

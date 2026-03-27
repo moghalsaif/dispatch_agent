@@ -334,3 +334,39 @@ def dashboard(request: Request):
 @app.get("/session/{session_id}", response_class=HTMLResponse)
 def session_detail(request: Request, session_id: str):
     return templates.TemplateResponse("dashboard.html", {"request": request, "session_id": session_id})
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+
+@app.get("/api/settings")
+def get_settings():
+    s = db.get_settings()
+    # Mask keys for display — never return raw values
+    masked = {}
+    for k, v in s.items():
+        if v and len(v) > 8:
+            masked[k] = v[:4] + "••••••••" + v[-4:]
+        else:
+            masked[k] = "••••••••" if v else ""
+    return {"saved": bool(s), "keys": list(s.keys()), "masked": masked}
+
+
+@app.post("/api/settings")
+async def save_settings(request: Request):
+    data = await request.json()
+    allowed = {"ELEVENLABS_API_KEY", "FIRECRAWL_API_KEY", "TELEGRAM_BOT_TOKEN",
+               "ELEVENLABS_AGENT_PHONE_NUMBER_ID", "SERVER_URL"}
+    filtered = {k: v for k, v in data.items() if k in allowed and v and v.strip()}
+    db.save_settings(filtered)
+    # Also update os.environ so the running server uses new keys immediately
+    for k, v in filtered.items():
+        os.environ[k] = v
+    return {"status": "saved", "count": len(filtered)}
+
+
+@app.get("/faq", response_class=HTMLResponse)
+def faq_page(request: Request):
+    return templates.TemplateResponse("faq.html", {"request": request})
